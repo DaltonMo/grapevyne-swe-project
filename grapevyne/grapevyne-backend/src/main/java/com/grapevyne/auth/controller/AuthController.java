@@ -1,5 +1,6 @@
 package com.grapevyne.auth.controller;
 
+import com.grapevyne.auth.jwt.JwtService;
 import com.grapevyne.auth.model.User;
 import com.grapevyne.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
@@ -33,7 +35,10 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody User login) {
         return userRepository.findByUsername(login.getUsername())
                 .filter(user -> passwordEncoder.matches(login.getPassword(), user.getPassword()))
-                .map(user -> ResponseEntity.ok("Login success (TODO: Return JWT)"))
-                .orElse(ResponseEntity.status(401).body("Invalid credentials"));
+                .map(user -> {
+                    String token = jwtService.generateToken(user.getUsername());
+                    return ResponseEntity.ok().body(Map.of("token", token));
+                })
+                .orElse(ResponseEntity.status(401).body(Map.of("error", "Invalid credentials")));
     }
 }
